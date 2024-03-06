@@ -186,12 +186,8 @@ async def check_and_update_key(normal_key, db):
 async def get_keys(db: Session = Depends(get_db)):
     normal_keys = await get_normal_az_keys(db, in_use_count=-1)
     print("开始更新")
-    print(normal_keys)
-
     # 创建任务列表
     tasks = [check_and_update_key(normal_key, db) for normal_key in normal_keys]
-
     # 使用asyncio.gather并发执行所有任务
     await asyncio.gather(*tasks)
-
     print("更新完成")
