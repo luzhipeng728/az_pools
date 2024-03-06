@@ -1,0 +1,43 @@
+<!-- 假设这是 edit_az_key.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit AZKey</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-6">
+        <h1 class="text-2xl font-bold text-gray-900 mb-4">Edit AZKey</h1>
+        <form action="/az-keys/update/{{ az_key.id }}" method="POST" class="w-full max-w-lg">
+            <!-- 假设 az_key 从后端传入表单 -->
+            <div class="flex flex-wrap -mx-3 mb-6">
+                <div class="w-full px-3">
+                    <label for="resourcename" class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2">Resource Name</label>
+                    <input type="text" name="resourcename" id="resourcename" value="{{ az_key.resourcename }}" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+                </div>
+            </div>
+            <div class="flex flex-wrap -mx-3 mb-6">
+                <div class="w-full px-3">
+                    <label for="key" class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2">Key</label>
+                    <input type="text" name="key" id="key" value="{{ az_key.key }}" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+                </div>
+            </div>
+            <div class="flex flex-wrap -mx-3 mb-6">
+                <div class="w-full px-3">
+                    <label for="status" class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2">Status</label>
+                    <select name="status" id="status" class="block appearance-none w-full bg-gray-200 border border-gray-200 text-gray-700 py-3 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+                        <option value="normal" {% if az_key.status == 'normal' %}selected{% endif %}>normal</option>
+                        <option value="suspend" {% if az_key.status == 'suspend' %}selected{% endif %}>suspend</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Add more fields as necessary -->
+            <div class="w-full px-3">
+                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">Update AZKey</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

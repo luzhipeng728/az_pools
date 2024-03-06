@@ -1,0 +1,12 @@
+redis
+fastapi
+uvicorn
+sqlalchemy
+asyncpg
+gunicorn
+psycopg2
+jinja2
+python-multipart
+aioredis
+openai
+apscheduler

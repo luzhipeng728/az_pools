@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Normal AZKeys</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.0.3/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto mt-8">
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">Normal AZKeys</h1>
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+            <table class="min-w-full leading-normal">
+                <thead>
+                    <tr class="text-left border-b border-gray-300">
+                        <th class="px-5 py-3 bg-gray-100 text-gray-600 font-bold uppercase text-sm">ID</th>
+                        <th class="px-5 py-3 bg-gray-100 text-gray-600 font-bold uppercase text-sm">Resource Name</th>
+                        <th class="px-5 py-3 bg-gray-100 text-gray-600 font-bold uppercase text-sm">Key</th>
+                        <th class="px-5 py-3 bg-gray-100 text-gray-600 font-bold uppercase text-sm">Status</th>
+                        <th class="px-5 py-3 bg-gray-100 text-gray-600 font-bold uppercase text-sm">Add Time</th>
+                        <th class="px-5 py-3 bg-gray-100 text-gray-600 font-bold uppercase text-sm">Is In Use</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for az_key in az_keys %}
+                    <tr class="border-b border-gray-300">
+                        <td class="px-5 py-2 text-sm">{{ az_key.id }}</td>
+                        <td class="px-5 py-2 text-sm">{{ az_key.resourcename }}</td>
+                        <td class="px-5 py-2 text-sm">{{ az_key.key }}</td>
+                        <td class="px-5 py-2 text-sm">{{ az_key.status }}</td>
+                        <td class="px-5 py-2 text-sm">{{ az_key.addtime }}</td>
+                        <td class="px-5 py-2 text-sm">{{ az_key.is_in_use }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

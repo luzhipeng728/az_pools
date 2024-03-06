@@ -1,0 +1,5 @@
+# root:Wandou@520@tcp(sg-cdb-9udtaued.sql.tencentcdb.com:63933)/one-api-copilot
+mysql_host: 'sg-cdb-9udtaued.sql.tencentcdb.com:63933'
+mysql_user: 'root'
+mysql_password: 'Wandou@520'
+mysql_db: 'one-api-copilot'
