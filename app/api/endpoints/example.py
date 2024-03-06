@@ -181,6 +181,8 @@ async def check_and_update_key(normal_key, db):
         print("这个账号已经被禁用了")
         normal_key['status'] = 'suspend'
         await update_az_key_crud(db, normal_key['id'], normal_key)
+    else:
+        print(f"{normal_key['resourcename']}还活着")
 
 @router.get("/update_keys/")
 async def get_keys(db: Session = Depends(get_db)):
@@ -190,4 +192,4 @@ async def get_keys(db: Session = Depends(get_db)):
     tasks = [check_and_update_key(normal_key, db) for normal_key in normal_keys]
     # 使用asyncio.gather并发执行所有任务
     await asyncio.gather(*tasks)
-    print("更新完成")
+    print("结束更新任务")
