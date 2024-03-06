@@ -25,25 +25,26 @@ def datetime_serializer(obj):
 async def rebuild_caches(db: Session):
     permanent_in_use_count_key = "permanent_in_use_count"
     default_in_use_count = 6
-
     # 尝试获取 permanent_in_use_count_key 的值，如果不存在，使用默认值
     permanent_in_use_count = redis_client.get(permanent_in_use_count_key)
-    if permanent_in_use_count is None:
+    if permanent_in_use_count is None or default_in_use_count <= 0:
         # 如果没有设置过永久 in_use_count，使用默认值并在 Redis 中设置这个默认值
         permanent_in_use_count = default_in_use_count
         redis_client.set(permanent_in_use_count_key, permanent_in_use_count)
     else:
         permanent_in_use_count = int(permanent_in_use_count)
-    
     # 重建 all_keys 缓存
     objs = db.query(AZKey).order_by(AZKey.id.asc()).all()
     all_keys = [{c.name: getattr(obj, c.name) for c in AZKey.__table__.columns} for obj in objs]
-    redis_client.setex("all_keys", 99999999, json.dumps(all_keys, default=datetime_serializer))
+    redis_client.set("all_keys", json.dumps(all_keys, default=datetime_serializer))
 
     # 筛选正常状态的 AZKey，并根据 permanent_in_use_count 的值限制结果数量, 同时按 id 升序排序
     normal_objs = db.query(AZKey).filter(AZKey.status == 'normal').order_by(AZKey.id.asc()).limit(permanent_in_use_count).all()
     normal_in_use_count_keys = [{c.name: getattr(obj, c.name) for c in AZKey.__table__.columns} for obj in normal_objs]
-    redis_client.setex("normal_in_use_count_keys", 99999999, json.dumps(normal_in_use_count_keys, default=datetime_serializer))
+    redis_client.set("normal_in_use_count_keys", json.dumps(normal_in_use_count_keys, default=datetime_serializer))
+    
+    return all_keys, normal_in_use_count_keys
+    
 
 # 添加 AZKey
 # 示例逻辑
@@ -60,7 +61,7 @@ async def add_az_key(db: Session, az_key_data: dict):
         db.add(az_key)
         db.commit()
         db.refresh(az_key)
-        await get_normal_az_keys(db)
+        await get_normal_az_keys(db, -1, force_update=True)
         return {"status": "success", "message": "AZKey added successfully.", "az_key": az_key}
     except Exception as e:
         db.rollback()  # 显式回滚，以应对其他可能的异常
@@ -105,7 +106,7 @@ async def get_all_az_keys(db: Session):
         # 从数据库获取，并更新缓存
         objs = db.query(AZKey).order_by(AZKey.id.asc()).all()
         result = [{c.name: getattr(obj, c.name) for c in AZKey.__table__.columns} for obj in objs]
-        redis_client.setex(cache_key, 99999999, json.dumps(result, default=datetime_serializer))
+        redis_client.set(cache_key, json.dumps(result, default=datetime_serializer))
         return result
 
 
@@ -121,64 +122,57 @@ async def get_normal_az_keys(db: Session, in_use_count: int = -1, force_update: 
     permanent_in_use_count = redis_client.get(permanent_in_use_count_key)
     if permanent_in_use_count:
         permanent_in_use_count = int(permanent_in_use_count)
-
-    cached_result = redis_client.get(default_cache_key)
-    if cached_result and not force_update:
-        cached_result = json.loads(cached_result)
+    else:
+        permanent_in_use_count = 6
+    if force_update:
         if in_use_count <= 0:
-            print("Returning matched cached result")
-            return cached_result
-    if in_use_count <= 0 and force_update:
-        if permanent_in_use_count:
             in_use_count = permanent_in_use_count
+        permanent_in_use_count = in_use_count
+        redis_client.set(permanent_in_use_count_key, permanent_in_use_count)
+        update_query_in_use = text("""
+            UPDATE az_keys
+            SET is_in_use = TRUE 
+            WHERE id IN (
+                SELECT id
+                FROM az_keys
+                WHERE status = 'normal'
+                ORDER BY id
+                LIMIT :limit
+            ) AND status = 'normal'
+        """)
+        db.execute(update_query_in_use, params={'limit': in_use_count})
+        # Then, update the rest of the az_keys to FALSE
+        update_query_not_in_use = text("""
+            UPDATE az_keys
+            SET is_in_use = FALSE
+            WHERE id NOT IN (
+                SELECT id
+                FROM az_keys
+                WHERE status = 'normal'
+                ORDER BY id
+                LIMIT :limit
+            )
+        """)
+        db.execute(update_query_not_in_use, params={'limit': in_use_count})
+        db.commit()
+        _, normal_keys = await rebuild_caches(db)  # Ensure this function is correctly defined and implemented
+        return normal_keys
+    else:
+        cached_result = redis_client.get(default_cache_key)
+        if cached_result and len(cached_result) > 0:
+            cached_result = json.loads(cached_result)
+            return cached_result
         else:
-            in_use_count = 6
-    redis_client.set(permanent_in_use_count_key, in_use_count)
-    
-
-    # First, update the selected az_keys to TRUE as you have
-    update_query_in_use = text("""
-        UPDATE az_keys
-        SET is_in_use = TRUE 
-        WHERE id IN (
-            SELECT id
-            FROM az_keys
-            WHERE status = 'normal'
-            ORDER BY id
-            LIMIT :limit
-        ) AND status = 'normal'
-    """)
-    db.execute(update_query_in_use, params={'limit': in_use_count})
-
-    # Then, update the rest of the az_keys to FALSE
-    update_query_not_in_use = text("""
-        UPDATE az_keys
-        SET is_in_use = FALSE
-        WHERE id NOT IN (
-            SELECT id
-            FROM az_keys
-            WHERE status = 'normal'
-            ORDER BY id
-            LIMIT :limit
-        )
-    """)
-    db.execute(update_query_not_in_use, params={'limit': in_use_count})
-
-    db.commit()
-
-    objs = db.query(AZKey).filter(AZKey.status == 'normal', AZKey.is_in_use == True).order_by(AZKey.id.asc()).all()
-    result = [{c.name: getattr(obj, c.name) for c in AZKey.__table__.columns} for obj in objs]
-
-    await rebuild_caches(db)
-
-    return result
+            # 如果没有缓存, 强制更新
+            return await get_normal_az_keys(db, in_use_count, force_update=True)
+              
+        
 
 async def get_az_key_by_id(db: Session, az_key_id: int):
     # 直接从数据库查询
     az_key = db.query(AZKey).filter(AZKey.id == az_key_id).first()
     return az_key
 
-@auto_rebuild_caches
 async def update_az_key_crud(db: Session, az_key_id: int, new_data: dict):
     obj = db.query(AZKey).filter(AZKey.id == az_key_id).first()
     if not obj:

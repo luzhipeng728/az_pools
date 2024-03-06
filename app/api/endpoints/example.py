@@ -33,9 +33,12 @@ async def read_all_az_keys(request: Request, db: Session = Depends(get_db)):
 @router.get("/az-keys/normal/{in_use_count}", response_class=HTMLResponse)
 async def read_normal_az_keys_html(request: Request, in_use_count: int = 6, db: Session = Depends(get_db)):
     try:
-        # 根据入参调整调用方式
-        normal_az_keys = await get_normal_az_keys(db, in_use_count if in_use_count > 0 else None)
-        # 返回HTML模板响应
+        if in_use_count is None:
+            in_use_count = -1
+        force_update = False
+        if in_use_count > 0:
+            force_update = True
+        normal_az_keys = await get_normal_az_keys(db, in_use_count, force_update)
         return templates.TemplateResponse("normal_az_keys.html", {"request": request, "az_keys": normal_az_keys})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unable to read normal AZKeys: {str(e)}")
@@ -130,6 +133,7 @@ async def get_keys(db: Session = Depends(get_db)):
     # 获取常规的AZKeys数组
     normal_az_keys = await get_normal_az_keys(db=db, in_use_count=0)
 
+    print(normal_az_keys)
     if not normal_az_keys:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -172,15 +176,13 @@ import asyncio
 @router.get("/update_keys/")
 async def get_keys(db: Session = Depends(get_db)):
     normal_keys = await get_normal_az_keys(db, in_use_count=-1)
+    print("开始更新")
+    print(normal_keys)
     for normal_key in normal_keys:
-        print('验证', normal_key)
+        print(normal_key)
         is_401 = await request_azure(normal_key['resourcename'], normal_key['key'])
         if is_401:
             print("这个账号已经被禁用了")
             normal_key['status'] = 'suspend'
             await update_az_key_crud(db, normal_key['id'], normal_key)
             await asyncio.sleep(1)
-    
-    
-    
-
