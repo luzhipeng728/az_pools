@@ -9,6 +9,25 @@
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-6">
+        <div class="flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-900 mb-4">AZKeys List</h1>
+            <!-- 添加账号入口按钮 -->
+            <a href="/az-keys/add-form" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                添加账号
+            </a>
+             <!-- View Button -->
+            <a href="/az-keys/normal/0" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                查看正在使用的key
+            </a>
+            <!-- Setting Input and Button Wrapper -->
+            <div>
+                <input type="number" placeholder="Enter ID" id="settingValue" class="shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                <button onclick="setAndView()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                    设置in_use_count
+                </button>
+            </div>
+        </div>
+       
         <h1 class="text-2xl font-bold text-gray-900 mb-4">AZKeys List</h1>
         <div class="flex flex-col">
             <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
@@ -74,5 +93,13 @@
             </div>
         </div>
     </div>
+        <!-- JavaScript部分 -->
+        <script>
+            function setAndView() {
+                var id = document.getElementById("settingValue").value || "0"; //获取输入框的值，如果没有输入，默认为"0"
+                window.location.href = '/az-keys/normal/' + id; //跳转到相应的链接
+            }
+        </script>
 </body>
+
 </html>
