@@ -16,5 +16,5 @@ while true; do
     -H 'sec-ch-ua: "Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"' \
     -H 'sec-ch-ua-mobile: ?0' \
     -H 'sec-ch-ua-platform: "macOS"'
-  sleep 10
+  sleep 1
 done

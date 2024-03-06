@@ -7,6 +7,8 @@ from app.crud.crud_item import get_all_az_keys, get_normal_az_keys, add_az_key, 
 from typing import Optional
 from asyncio import Lock
 
+import asyncio
+
 # 全局变量和锁初始化
 global_counter = 0
 counter_lock = Lock()
@@ -156,6 +158,7 @@ async def get_keys(db: Session = Depends(get_db)):
     
 from openai import AsyncAzureOpenAI
     
+# 定义request_azure函数
 async def request_azure(resourcename, key):
     try:
         async with AsyncAzureOpenAI(
@@ -172,17 +175,23 @@ async def request_azure(resourcename, key):
         else:
             return False
 
-import asyncio
+async def check_and_update_key(normal_key, db):
+    is_401 = await request_azure(normal_key['resourcename'], normal_key['key'])
+    if is_401:
+        print("这个账号已经被禁用了")
+        normal_key['status'] = 'suspend'
+        await update_az_key_crud(db, normal_key['id'], normal_key)
+
 @router.get("/update_keys/")
 async def get_keys(db: Session = Depends(get_db)):
     normal_keys = await get_normal_az_keys(db, in_use_count=-1)
     print("开始更新")
     print(normal_keys)
-    for normal_key in normal_keys:
-        print(normal_key)
-        is_401 = await request_azure(normal_key['resourcename'], normal_key['key'])
-        if is_401:
-            print("这个账号已经被禁用了")
-            normal_key['status'] = 'suspend'
-            await update_az_key_crud(db, normal_key['id'], normal_key)
-            await asyncio.sleep(1)
+
+    # 创建任务列表
+    tasks = [check_and_update_key(normal_key, db) for normal_key in normal_keys]
+
+    # 使用asyncio.gather并发执行所有任务
+    await asyncio.gather(*tasks)
+
+    print("更新完成")
