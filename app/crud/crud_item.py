@@ -7,13 +7,13 @@ from fastapi import Query
 from functools import wraps
 
 # 定义一个装饰器，用于数据变更后自动重建缓存
-def auto_rebuild_caches(func):
-    @wraps(func)
-    async def wrapper(db: Session, *args, **kwargs):
-        result = await func(db, *args, **kwargs)
-        await rebuild_caches(db)  # 调用重建缓存的方法
-        return result
-    return wrapper
+# def auto_rebuild_caches(func):
+#     @wraps(func)
+#     async def wrapper(db: Session, *args, **kwargs):
+#         result = await func(db, *args, **kwargs)
+#         await rebuild_caches(db)  # 调用重建缓存的方法
+#         return result
+#     return wrapper
 
 # 序列化方法，用于处理 datetime
 def datetime_serializer(obj):
@@ -36,12 +36,12 @@ async def rebuild_caches(db: Session):
     # 重建 all_keys 缓存
     objs = db.query(AZKey).order_by(AZKey.id.asc()).all()
     all_keys = [{c.name: getattr(obj, c.name) for c in AZKey.__table__.columns} for obj in objs]
-    redis_client.set("all_keys", json.dumps(all_keys, default=datetime_serializer))
+    # redis_client.set("all_keys", json.dumps(all_keys, default=datetime_serializer))
 
     # 筛选正常状态的 AZKey，并根据 permanent_in_use_count 的值限制结果数量, 同时按 id 升序排序
     normal_objs = db.query(AZKey).filter(AZKey.status == 'normal').order_by(AZKey.id.asc()).limit(permanent_in_use_count).all()
     normal_in_use_count_keys = [{c.name: getattr(obj, c.name) for c in AZKey.__table__.columns} for obj in normal_objs]
-    redis_client.set("normal_in_use_count_keys", json.dumps(normal_in_use_count_keys, default=datetime_serializer))
+    # redis_client.set("normal_in_use_count_keys", json.dumps(normal_in_use_count_keys, default=datetime_serializer))
     
     return all_keys, normal_in_use_count_keys
     
@@ -67,7 +67,7 @@ async def add_az_key(db: Session, az_key_data: dict):
         db.rollback()  # 显式回滚，以应对其他可能的异常
         return {"status": "error", "message": "Error adding AZKey."}
 
-@auto_rebuild_caches
+# @auto_rebuild_caches
 async def update_az_key(db: Session, az_key_id: int, new_data: dict):
     obj = db.query(AZKey).filter(AZKey.id == az_key_id).first()
     if obj:
@@ -82,7 +82,7 @@ async def update_az_key(db: Session, az_key_id: int, new_data: dict):
     else:
         return {"status": "error", "message": "AZKey not found."}
 
-@auto_rebuild_caches
+# @auto_rebuild_caches
 async def delete_az_key(db: Session, az_key_id: int):
     obj = db.query(AZKey).filter(AZKey.id == az_key_id).first()
     if obj:
@@ -113,9 +113,9 @@ async def get_all_az_keys(db: Session):
 from sqlalchemy.sql import text
 
 async def get_normal_az_keys(db: Session, in_use_count: int = -1, force_update: bool=False):
-    default_cache_key = "normal_in_use_count_keys"
+    # default_cache_key = "normal_in_use_count_keys"
     permanent_in_use_count_key = "permanent_in_use_count"
-    cached_result = None
+    # cached_result = None
     if in_use_count is None:
         in_use_count = -1
 
@@ -155,16 +155,8 @@ async def get_normal_az_keys(db: Session, in_use_count: int = -1, force_update: 
         """)
         db.execute(update_query_not_in_use, params={'limit': in_use_count})
         db.commit()
-        _, normal_keys = await rebuild_caches(db)  # Ensure this function is correctly defined and implemented
-        return normal_keys
-    else:
-        cached_result = redis_client.get(default_cache_key)
-        if cached_result and len(cached_result) > 0:
-            cached_result = json.loads(cached_result)
-            return cached_result
-        else:
-            # 如果没有缓存, 强制更新
-            return await get_normal_az_keys(db, in_use_count, force_update=True)
+    _, normal_keys = await rebuild_caches(db)  # Ensure this function is correctly defined and implemented
+    return normal_keys
               
         
 

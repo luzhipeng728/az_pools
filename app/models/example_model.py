@@ -11,7 +11,7 @@ class AZKey(Base):
     resourcename = Column(String, index=True)  # 注意这里的大小写
     key = Column(String)
     status = Column(String, default="normal")
-    addtime = Column(TIMESTAMP, server_default=func.now())
+    # addtime = Column(TIMESTAMP, server_default=func.now())
     is_in_use = Column(Boolean, default=False)
     
     # 在AZKey模型内

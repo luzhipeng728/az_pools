@@ -11,8 +11,6 @@ services:
 
   redis:
     image: redis:latest
-    ports:
-      - "6379:6379"
 
   web:
     build: .
@@ -31,6 +29,10 @@ services:
     depends_on:
       - db
       - redis
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   postgres_data:

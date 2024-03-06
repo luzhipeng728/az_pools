@@ -134,8 +134,9 @@ async def get_keys(db: Session = Depends(get_db)):
 
     # 获取常规的AZKeys数组
     normal_az_keys = await get_normal_az_keys(db=db, in_use_count=0)
-
-    print(normal_az_keys)
+    
+    print("====" * 10)
+    print(normal_az_keys, type(normal_az_keys))
     if not normal_az_keys:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -145,6 +146,9 @@ async def get_keys(db: Session = Depends(get_db)):
     # 根据全局计数器对数组长度取余，以实现循环访问
     key_index = global_counter % len(normal_az_keys)
     selected_key = normal_az_keys[key_index]
+    
+    print(selected_key)
+    print("====" * 10)
 
     # 返回被选择的key和一些其他可能有用的信息
     return JSONResponse(
