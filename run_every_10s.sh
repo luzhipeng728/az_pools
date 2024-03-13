@@ -3,7 +3,7 @@
 
 # 定义检查和可能杀死进程的函数
 check_and_kill_if_needed() {
-    local threshold=30  # 定义内存使用率的阈值
+    local threshold=20  # 定义内存使用率的阈值
 
     local uvicorn_pids=$(pgrep -f uvicorn)
 
